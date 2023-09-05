@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { read, utils, writeFile } from 'xlsx';
 import { Table, Input, Button, Space, Select, Pagination } from 'antd';
+import { SearchOutlined, DownloadOutlined } from '@ant-design/icons'; // Import the missing icons
+
+const { Option } = Select;
 
 const HomeComponent = () => {
   const [Leads, setLeads] = useState([]);
@@ -108,7 +111,7 @@ const HomeComponent = () => {
             </div>
             <div className="col-md-6">
               <button onClick={handleExport} className="btn btn-primary float-right">
-                Export <i className="fa fa-download"></i>
+                Export <DownloadOutlined />
               </button>
             </div>
           </div>
@@ -147,6 +150,39 @@ const HomeComponent = () => {
                 title: 'Email',
                 dataIndex: 'Email',
                 key: 'Email',
+                // The following code is for email filtering
+                filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+                  <div style={{ padding: 8 }}>
+                    <Input
+                      placeholder="Filter by Email"
+                      value={selectedKeys[0]}
+                      onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                      onPressEnter={() => {
+                        confirm();
+                      }}
+                      style={{ width: 188, marginBottom: 8, display: 'block' }}
+                    />
+                    <Space>
+                      <Button
+                        type="primary"
+                        onClick={() => {
+                          confirm();
+                        }}
+                        icon={<SearchOutlined />}
+                        size="small"
+                        style={{ width: 90 }}
+                      >
+                        Search
+                      </Button>
+                      <Button onClick={clearFilters} size="small" style={{ width: 90 }}>
+                        Reset
+                      </Button>
+                    </Space>
+                  </div>
+                ),
+                onFilter: (value, record) =>
+                  record.Email.toLowerCase().includes(value.toLowerCase()),
+                // End of email filtering logic
               },
               {
                 title: 'Country',
