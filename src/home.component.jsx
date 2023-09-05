@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { read, utils, writeFile } from 'xlsx';
 import { Table, Input, Button, Space, Select, Pagination } from 'antd';
-// import 'antd/dist/antd.css';
-
 
 const HomeComponent = () => {
   const [Leads, setLeads] = useState([]);
@@ -11,7 +9,7 @@ const HomeComponent = () => {
   const [sortOrder, setSortOrder] = useState({
     columnKey: null,
     order: null,
-});
+  });
   const pageSize = 10; // Number of items to display per page
 
   const handleImport = ($event) => {
@@ -26,33 +24,40 @@ const HomeComponent = () => {
         if (sheets.length) {
           const rows = utils.sheet_to_json(wb.Sheets[sheets[0]]);
           setLeads(rows);
+          setSortedLeads(rows); // Set sortedLeads initially to match the imported data.
         }
       };
       reader.readAsArrayBuffer(file);
     }
   };
-   
+
   const handleSort = (columnKey) => {
-    let newOrder = "asc"; // Default sorting order is ascending.
+    if (columnKey === "CustomerId" || columnKey === "CustomerName") {
+      let newOrder = "asc"; // Default sorting order is ascending.
 
-    // If the same column is clicked again, toggle the sorting order.
-    if (sortOrder.columnKey === columnKey) {
+      // If the same column is clicked again, toggle the sorting order.
+      if (sortOrder.columnKey === columnKey) {
         newOrder = sortOrder.order === "asc" ? "desc" : "asc";
-    }
+      }
 
-    // Sort the data based on the selected column and order.
-    const sortedData = [...Leads].sort((a, b) => {
-        if (newOrder === "asc") {
-            return a[columnKey] < b[columnKey] ? -1 : 1;
+      // Sort the data based on the selected column and order.
+      const sortedData = [...sortedLeads].sort((a, b) => {
+        if (columnKey === "CustomerId" || columnKey === "CustomerName") {
+          if (newOrder === "asc") {
+            return a[columnKey].localeCompare(b[columnKey]);
+          } else {
+            return b[columnKey].localeCompare(a[columnKey]);
+          }
         } else {
-            return a[columnKey] > b[columnKey] ? -1 : 1;
+          return 0; // For other columns, no sorting is performed.
         }
-    });
+      });
 
-    // Update the state with the new sorted data and sorting order.
-    setSortedLeads(sortedData);
-    setSortOrder({ columnKey, order: newOrder });
-};
+      // Update the state with the new sorted data and sorting order.
+      setSortedLeads(sortedData);
+      setSortOrder({ columnKey, order: newOrder });
+    }
+  };
 
   const handleExport = () => {
     const headings = [
@@ -68,7 +73,7 @@ const HomeComponent = () => {
     const wb = utils.book_new();
     const ws = utils.json_to_sheet([]);
     utils.sheet_add_aoa(ws, headings);
-    utils.sheet_add_json(ws, Leads, { origin: 'A2', skipHeader: true });
+    utils.sheet_add_json(ws, sortedLeads, { origin: 'A2', skipHeader: true });
     utils.book_append_sheet(wb, ws, 'Report');
     writeFile(wb, 'Lead Report.xlsx');
   };
@@ -76,7 +81,7 @@ const HomeComponent = () => {
   // Calculate the visible Leads based on currentPage and pageSize
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
-  const visibleLeads = Leads.slice(start, end);
+  const visibleLeads = sortedLeads.slice(start, end);
 
   return (
     <>
@@ -116,32 +121,42 @@ const HomeComponent = () => {
               {
                 title: 'CustomerId',
                 dataIndex: 'CustomerId',
-                key: 'CustomerId'
+                key: 'CustomerId',
+                // sorter: true,
+                // sortOrder: sortOrder.columnKey === 'CustomerId' && sortOrder.order,
+                // onHeaderCell: (column) => ({
+                //   onClick: () => handleSort(column.dataIndex),
+                // }),
               },
               {
                 title: 'CustomerName',
                 dataIndex: 'CustomerName',
-                key: 'CustomerName'
+                key: 'CustomerName',
+                sorter: true,
+                sortOrder: sortOrder.columnKey === 'CustomerName' && sortOrder.order,
+                onHeaderCell: (column) => ({
+                  onClick: () => handleSort(column.dataIndex),
+                }),
               },
               {
                 title: 'Phone',
                 dataIndex: 'Phone',
-                key: 'Phone'
+                key: 'Phone',
               },
               {
                 title: 'Email',
                 dataIndex: 'Email',
-                key: 'Email'
+                key: 'Email',
               },
               {
                 title: 'Country',
                 dataIndex: 'Country',
-                key: 'Country'
+                key: 'Country',
               },
               {
                 title: 'LeadStatus',
                 dataIndex: 'LeadStatus',
-                key: 'LeadStatus'
+                key: 'LeadStatus',
               }
             ]}
             dataSource={visibleLeads}
@@ -149,7 +164,7 @@ const HomeComponent = () => {
           />
           <Pagination
             current={currentPage}
-            total={Leads.length}
+            total={sortedLeads.length}
             pageSize={pageSize}
             onChange={(page) => setCurrentPage(page)}
             showSizeChanger={false} // You can enable this option if needed
