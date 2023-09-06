@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState ,useEffect} from "react";
 import { read, utils, writeFile } from 'xlsx';
 import { Table, Input, Button, Space, Select, Pagination } from 'antd';
 import { SearchOutlined, DownloadOutlined } from '@ant-design/icons'; // Import the missing icons
@@ -13,7 +13,19 @@ const HomeComponent = () => {
     columnKey: null,
     order: null,
   });
+
+  const [leadStatusFilter, setLeadStatusFilter] = useState("");
   const pageSize = 10; // Number of items to display per page
+
+  useEffect(() => {
+    // Apply the filter when leadStatusFilter changes
+    const filteredLeads = Leads.filter((lead) => {
+      return !leadStatusFilter || lead.LeadStatus === leadStatusFilter;
+    });
+    setSortedLeads(filteredLeads);
+  }, [leadStatusFilter, Leads]);
+
+
 
   const handleImport = ($event) => {
     const files = $event.target.files;
@@ -33,6 +45,9 @@ const HomeComponent = () => {
       reader.readAsArrayBuffer(file);
     }
   };
+
+
+
 
   const handleSort = (columnKey) => {
     if (columnKey === "CustomerId" || columnKey === "CustomerName") {
@@ -62,6 +77,8 @@ const HomeComponent = () => {
     }
   };
 
+
+
   const handleExport = () => {
     const headings = [
       [
@@ -85,6 +102,17 @@ const HomeComponent = () => {
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
   const visibleLeads = sortedLeads.slice(start, end);
+
+  const handleLeadStatusChange = (value, record) => {
+    // Update the LeadStatus for the specific record
+    const updatedLeads = Leads.map((lead) => {
+      if (lead.CustomerId === record.CustomerId) {
+        return { ...lead, LeadStatus: value };
+      }
+      return lead;
+    });
+    setLeads(updatedLeads);
+  };
 
   return (
     <>
@@ -193,6 +221,16 @@ const HomeComponent = () => {
                 title: 'LeadStatus',
                 dataIndex: 'LeadStatus',
                 key: 'LeadStatus',
+                render: (text, record) => (
+                  <Select
+                    style={{ width: 100 }}
+                    value={record.LeadStatus}
+                    onChange={(value) => handleLeadStatusChange(value, record)}
+                  >
+                    <Option value="A">A</Option>
+                    <Option value="B">B</Option>
+                    <Option value="C">C</Option>
+                  </Select>)
               }
             ]}
             dataSource={visibleLeads}
